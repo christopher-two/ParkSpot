@@ -1,52 +1,72 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# ParkSpot
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-    - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-    - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-      For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-      the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-      Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-      folder is the appropriate location.
+ParkSpot es una app Kotlin Multiplatform para guardar la ubicacion de tu auto estacionado, consultar historial de lugares guardados y ver detalles de cada registro.
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+## Que hace el proyecto
 
-### Mapbox token (Android)
+- Onboarding inicial para configurar el flujo de uso.
+- Seleccion y guardado de ubicaciones de estacionamiento.
+- Historial de lugares guardados con pantalla de detalle.
+- Mapa en Android con Mapbox.
+- Soporte iOS para la app compartida (el mapa nativo en iOS aun no esta implementado).
 
-Do not place the token directly in `strings.xml`. Configure it with one of these options:
+## Stack tecnico
+
+- Kotlin Multiplatform + Compose Multiplatform.
+- Inyeccion de dependencias con Koin.
+- Persistencia local con Room y DataStore.
+- Networking con Ktor.
+- Mapa en Android con Mapbox (`maps-compose`).
+
+## Estructura del workspace
+
+- `composeApp/`: logica compartida y features (`data`, `domain`, `presentation`).
+- `androidapp/`: app Android (entry point y configuracion Android).
+- `iosApp/`: app iOS (entry point en Xcode).
+
+## Arquitectura (alto nivel)
+
+El proyecto esta organizado por feature y capas:
+
+- `feature/*/data`: repositorios e implementaciones de fuentes de datos.
+- `feature/*/domain`: modelos y casos de uso.
+- `feature/*/presentation`: `ViewModel` y UI en Compose.
+- Modulos DI centralizados en `composeApp/src/commonMain/kotlin/org/christophertwo/car/di/FeaturesModules.kt`.
+
+## Configuracion de Mapbox (Android)
+
+No coloques el token en `strings.xml`.
+El token se inyecta en build time desde `androidapp/build.gradle.kts` como `mapbox_access_token`.
+
+Opciones de configuracion:
 
 ```ini
-# local.properties (recommended for local dev)
+# local.properties (recomendado para desarrollo local)
 MAPBOX_ACCESS_TOKEN=pk.your_token_here
 ```
 
-Or from CI/terminal:
+O por CLI/CI:
 
-```shell
-./gradlew :composeApp:assembleDebug -PMAPBOX_ACCESS_TOKEN=pk.your_token_here
+```bash
+./gradlew :androidapp:assembleDebug -PMAPBOX_ACCESS_TOKEN=pk.your_token_here
 ```
 
-`androidapp/build.gradle.kts` injects this value as the Android resource `mapbox_access_token` at build time.
+Tambien se mantiene compatibilidad con `MAPBOX_SECRET_TOKEN` como fallback.
 
-### Build and Run Android Application
+## Ejecutar en Android
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
+```bash
+./gradlew :androidapp:assembleDebug
+```
 
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+## Ejecutar en iOS
 
-### Build and Run iOS Application
+Abre `iosApp/` en Xcode y ejecuta el target `iosApp`.
 
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+## Notas
+
+- `local.properties` no debe versionarse.
+- Si un token fue expuesto previamente, debes rotarlo en Mapbox.
 
 ---
 
