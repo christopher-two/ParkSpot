@@ -14,5 +14,8 @@ expect fun FullMap(
     onSpotClick: (ParkingSpot) -> Unit = {},
     cameraCenterTrigger: Int = 0,
     zoomLevel: Double = 16.0,
-    locationReady: Boolean = false
+    locationReady: Boolean = false,
+    selectedSpotLatitude: Double? = null,
+    selectedSpotLongitude: Double? = null,
+    isSelectingSpotLocation: Boolean = false,
 )

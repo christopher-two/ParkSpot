@@ -23,7 +23,10 @@ data class CarState(
 
     // Nuevos campos para ParkingSpots locales
     val showAddSpotDialog: Boolean = false,
-    
+    val isSelectingSpotLocation: Boolean = false,
+    val selectedSpotLatitude: Double? = null,
+    val selectedSpotLongitude: Double? = null,
+
     // Legacy — se mantiene hasta refactorizar el guardado completo
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,

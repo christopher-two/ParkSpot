@@ -74,15 +74,43 @@ class CarViewModel(
 
     fun onAction(action: CarAction) {
         when (action) {
-            is CarAction.OnMapClicked -> { /* ignorado: usamos OnParkHere para guardar */ }
+            is CarAction.OnMapClicked -> _state.update {
+                if (it.isSelectingSpotLocation) {
+                    it.copy(
+                        selectedSpotLatitude = action.latitude,
+                        selectedSpotLongitude = action.longitude,
+                    )
+                } else {
+                    it
+                }
+            }
             is CarAction.OnSpotClicked -> {
                 navigationController.navigateInTab(RouteHome.ParkingDetail(action.spot.id))
             }
             is CarAction.OnParkHere -> _state.update {
-                it.copy(showAddSpotDialog = true, note = "", photoPaths = emptyList(), parkUntil = null)
+                it.copy(
+                    isSelectingSpotLocation = true,
+                    showAddSpotDialog = false,
+                    selectedSpotLatitude = it.userLocation.latitude,
+                    selectedSpotLongitude = it.userLocation.longitude,
+                    note = "",
+                    photoPaths = emptyList(),
+                    parkUntil = null,
+                )
+            }
+            is CarAction.OnConfirmSpotSelection -> _state.update {
+                if (it.isSelectingSpotLocation) it.copy(showAddSpotDialog = true) else it
             }
             is CarAction.OnAddSpotDismissed -> _state.update {
-                it.copy(showAddSpotDialog = false, note = "", photoPaths = emptyList(), parkUntil = null)
+                it.copy(
+                    showAddSpotDialog = false,
+                    isSelectingSpotLocation = false,
+                    selectedSpotLatitude = null,
+                    selectedSpotLongitude = null,
+                    note = "",
+                    photoPaths = emptyList(),
+                    parkUntil = null,
+                )
             }
             is CarAction.OnZoomIn -> _state.update { it.copy(zoomLevel = minOf(it.zoomLevel + 1.0, 20.0)) }
             is CarAction.OnZoomOut -> _state.update { it.copy(zoomLevel = maxOf(it.zoomLevel - 1.0, 0.0)) }
@@ -114,9 +142,11 @@ class CarViewModel(
             try {
                 val now = kotlin.time.Clock.System.now()
                     .toLocalDateTime(TimeZone.currentSystemDefault())
+                val latitudeToSave = _state.value.selectedSpotLatitude ?: _state.value.userLocation.latitude
+                val longitudeToSave = _state.value.selectedSpotLongitude ?: _state.value.userLocation.longitude
                 val spot = ParkingSpot(
-                    latitude = _state.value.userLocation.latitude,
-                    longitude = _state.value.userLocation.longitude,
+                    latitude = latitudeToSave,
+                    longitude = longitudeToSave,
                     photoPaths = _state.value.photoPaths,
                     savedAt = now,
                     note = _state.value.note,
@@ -129,6 +159,9 @@ class CarViewModel(
                         isSaving = false,
                         saveSuccess = true,
                         showAddSpotDialog = false,
+                        isSelectingSpotLocation = false,
+                        selectedSpotLatitude = null,
+                        selectedSpotLongitude = null,
                         selectedMarker = null,
                         note = "",
                         photoPaths = emptyList(),

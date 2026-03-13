@@ -9,6 +9,7 @@ sealed interface CarAction {
     data class OnSpotClicked(val spot: ParkingSpot) : CarAction
     // Abre el sheet de guardado con la ubicación actual del usuario
     data object OnParkHere : CarAction
+    data object OnConfirmSpotSelection : CarAction
     data object OnAddSpotDismissed : CarAction
     
     // Controles de Mapa

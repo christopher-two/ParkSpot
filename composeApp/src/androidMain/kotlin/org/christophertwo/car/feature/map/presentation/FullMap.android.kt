@@ -55,6 +55,9 @@ actual fun FullMap(
     cameraCenterTrigger: Int,
     zoomLevel: Double,
     locationReady: Boolean,
+    selectedSpotLatitude: Double?,
+    selectedSpotLongitude: Double?,
+    isSelectingSpotLocation: Boolean,
 ) {
     if (!locationReady) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -124,6 +127,18 @@ actual fun FullMap(
             }
         }
 
+        if (isSelectingSpotLocation && selectedSpotLatitude != null && selectedSpotLongitude != null) {
+            ViewAnnotation(
+                options = viewAnnotationOptions {
+                    geometry(Point.fromLngLat(selectedSpotLongitude, selectedSpotLatitude))
+                    allowOverlap(true)
+                    allowOverlapWithPuck(true)
+                }
+            ) {
+                DraftSpotMapMarker()
+            }
+        }
+
         MapEffect(Unit) { mapView ->
             mapView.location.apply {
                 locationPuck = createDefault2DPuck(withBearing = true)
@@ -139,6 +154,23 @@ actual fun FullMap(
                 transition = mapView.viewport.makeImmediateViewportTransition()
             )
         }
+    }
+}
+
+@Composable
+private fun DraftSpotMapMarker() {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.LocationOn,
+            contentDescription = "Punto seleccionado",
+            tint = MaterialTheme.colorScheme.onTertiary,
+            modifier = Modifier.size(34.dp),
+        )
     }
 }
 

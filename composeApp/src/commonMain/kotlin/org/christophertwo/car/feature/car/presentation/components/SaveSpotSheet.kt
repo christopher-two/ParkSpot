@@ -93,8 +93,8 @@ fun SaveSpotSheet(
             }
 
             // — Coordenadas (informativo) —
-            val lat = state.userLocation.latitude
-            val lon = state.userLocation.longitude
+            val lat = state.selectedSpotLatitude ?: state.userLocation.latitude
+            val lon = state.selectedSpotLongitude ?: state.userLocation.longitude
             Text(
                 text = "📍 ${(lat * 100000).toLong() / 100000.0}, ${(lon * 100000).toLong() / 100000.0}",
                 style = MaterialTheme.typography.bodySmall,

@@ -18,7 +18,10 @@ actual fun FullMap(
     onSpotClick: (ParkingSpot) -> Unit,
     cameraCenterTrigger: Int,
     zoomLevel: Double,
-    locationReady: Boolean
+    locationReady: Boolean,
+    selectedSpotLatitude: Double?,
+    selectedSpotLongitude: Double?,
+    isSelectingSpotLocation: Boolean,
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text("Map is not supported on iOS yet.")

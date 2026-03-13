@@ -31,6 +31,7 @@ fun MapOverlayControls(
     onZoomOutClick: () -> Unit,
     onCenterClick: () -> Unit,
     onParkHereClick: () -> Unit,
+    isSelectingSpotLocation: Boolean = false,
 ) {
     Column(
         modifier = modifier.padding(16.dp),
@@ -69,7 +70,12 @@ fun MapOverlayControls(
                     modifier = Modifier.size(20.dp),
                 )
             },
-            text = { Text("Aparcar aquí") },
+            text = {
+                Text(
+                    if (isSelectingSpotLocation) "Confirmar punto"
+                    else "Aparcar aquí"
+                )
+            },
         )
     }
 }

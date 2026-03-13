@@ -1,6 +1,9 @@
 package org.christophertwo.car.feature.parking.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -36,12 +40,19 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import compose.icons.FontAwesomeIcons
@@ -81,6 +92,8 @@ fun ParkingDetailScreen(
     state: ParkingDetailState,
     onAction: (ParkingDetailAction) -> Unit,
 ) {
+    var expandedImagePath by remember { mutableStateOf<String?>(null) }
+
     when {
         state.isLoading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -103,6 +116,7 @@ fun ParkingDetailScreen(
                 spot = state.spot,
                 remainingSeconds = state.remainingSeconds,
                 onAction = onAction,
+                onPhotoClick = { expandedImagePath = it },
             )
 
             // BottomSheet con el mapa de ubicación
@@ -137,6 +151,13 @@ fun ParkingDetailScreen(
                     onDismiss = { onAction(ParkingDetailAction.OnDismissParkUntilPicker) },
                 )
             }
+
+            if (expandedImagePath != null) {
+                PhotoZoomDialog(
+                    imagePath = expandedImagePath!!,
+                    onDismiss = { expandedImagePath = null },
+                )
+            }
         }
     }
 }
@@ -146,6 +167,7 @@ private fun ParkingDetailContent(
     spot: ParkingSpot,
     remainingSeconds: Long?,
     onAction: (ParkingDetailAction) -> Unit,
+    onPhotoClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -347,7 +369,8 @@ private fun ParkingDetailContent(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(MaterialTheme.shapes.medium),
+                                        .clip(MaterialTheme.shapes.medium)
+                                        .clickable { onPhotoClick(path) },
                                 )
                             }
                         }
@@ -560,6 +583,59 @@ private fun ParkUntilPickerDialog(
             TextButton(onClick = onDismiss) { Text("Cancelar") }
         },
     )
+}
+
+@Composable
+private fun PhotoZoomDialog(
+    imagePath: String,
+    onDismiss: () -> Unit,
+) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+
+    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
+        scale = (scale * zoomChange).coerceIn(1f, 4f)
+        offsetX += panChange.x
+        offsetY += panChange.y
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.92f))
+                .clickable { onDismiss() },
+        ) {
+            AsyncImage(
+                model = toImageModel(imagePath),
+                contentDescription = "Foto ampliada",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        translationX = offsetX
+                        translationY = offsetY
+                    }
+                    .transformable(transformableState),
+            )
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Cerrar",
+                    tint = Color.White,
+                )
+            }
+        }
+    }
 }
 
 private fun toImageModel(path: String): String {

@@ -54,6 +54,9 @@ fun CarScreen(
             cameraCenterTrigger = state.cameraCenterTrigger,
             zoomLevel = state.zoomLevel,
             locationReady = state.locationReady,
+            selectedSpotLatitude = state.selectedSpotLatitude,
+            selectedSpotLongitude = state.selectedSpotLongitude,
+            isSelectingSpotLocation = state.isSelectingSpotLocation,
         )
 
         // Capa 2 — Controles superpuestos
@@ -62,7 +65,11 @@ fun CarScreen(
             onZoomInClick = { onAction(CarAction.OnZoomIn) },
             onZoomOutClick = { onAction(CarAction.OnZoomOut) },
             onCenterClick = { onAction(CarAction.OnCenterLocation) },
-            onParkHereClick = { onAction(CarAction.OnParkHere) },
+            onParkHereClick = {
+                if (state.isSelectingSpotLocation) onAction(CarAction.OnConfirmSpotSelection)
+                else onAction(CarAction.OnParkHere)
+            },
+            isSelectingSpotLocation = state.isSelectingSpotLocation,
         )
 
         SnackbarHost(
