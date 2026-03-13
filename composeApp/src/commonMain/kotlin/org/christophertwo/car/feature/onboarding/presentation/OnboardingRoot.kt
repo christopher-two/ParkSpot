@@ -5,14 +5,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +25,7 @@ import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.Car
 import compose.icons.fontawesomeicons.solid.MapMarkerAlt
 import compose.icons.fontawesomeicons.solid.Wifi
+import kotlinx.coroutines.flow.distinctUntilChanged
 import org.christophertwo.car.core.ui.CarLocateTheme
 import org.christophertwo.car.feature.onboarding.presentation.components.OnboardingNavigationButtons
 import org.christophertwo.car.feature.onboarding.presentation.components.OnboardingPageContent
@@ -79,16 +78,17 @@ fun OnboardingScreen(
     )
 
     LaunchedEffect(state.currentPage) {
-        pagerState.animateScrollToPage(state.currentPage)
+        if (pagerState.currentPage != state.currentPage) {
+            pagerState.animateScrollToPage(state.currentPage)
+        }
     }
 
     LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }.collect { page ->
-            if (page != state.currentPage) {
-                if (page > state.currentPage) onAction(OnboardingAction.OnNextPage)
-                else onAction(OnboardingAction.OnPreviousPage)
+        snapshotFlow { pagerState.currentPage }
+            .distinctUntilChanged()
+            .collect { page ->
+                onAction(OnboardingAction.OnPageChanged(page))
             }
-        }
     }
 
     Scaffold(
@@ -148,4 +148,3 @@ private fun Preview() {
         )
     }
 }
-

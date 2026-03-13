@@ -32,6 +32,11 @@ class OnboardingViewModel(
             is OnboardingAction.OnPreviousPage -> {
                 _state.update { it.copy(currentPage = (it.currentPage - 1).coerceAtLeast(0)) }
             }
+            is OnboardingAction.OnPageChanged -> {
+                _state.update {
+                    it.copy(currentPage = action.page.coerceIn(0, it.totalPages - 1))
+                }
+            }
             is OnboardingAction.OnComplete -> {
                 viewModelScope.launch {
                     _state.update { it.copy(isLoading = true) }

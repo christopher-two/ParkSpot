@@ -99,33 +99,11 @@ fun ParkingDetailScreen(
         }
 
         else -> {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Detalle del aparcamiento") },
-                        navigationIcon = {
-                            IconButton(onClick = { onAction(ParkingDetailAction.OnBack) }) {
-                                Icon(
-                                    imageVector = FontAwesomeIcons.Solid.ArrowLeft,
-                                    contentDescription = "Volver",
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        },
-                    )
-                },
-            ) { innerPadding ->
-                ParkingDetailContent(
-                    spot = state.spot,
-                    remainingSeconds = state.remainingSeconds,
-                    onAction = onAction,
-                    modifier = Modifier.padding(
-                        horizontal = innerPadding.calculateLeftPadding(
-                            LocalLayoutDirection.current
-                        )
-                    ),
-                )
-            }
+            ParkingDetailContent(
+                spot = state.spot,
+                remainingSeconds = state.remainingSeconds,
+                onAction = onAction,
+            )
 
             // BottomSheet con el mapa de ubicación
             if (state.showLocationMap) {

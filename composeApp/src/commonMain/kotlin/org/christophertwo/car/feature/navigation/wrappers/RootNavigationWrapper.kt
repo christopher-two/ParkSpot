@@ -5,6 +5,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
@@ -17,15 +18,24 @@ import org.koin.core.annotation.KoinExperimentalAPI
 @OptIn(KoinExperimentalAPI::class)
 @Composable
 fun RootNavigationWrapper(
-    isLoggedIn: Boolean
+    isLoggedIn: Boolean?
 ) {
     val globalNavigator: GlobalNavigator = koinInject()
-
-    if (isLoggedIn) {
-        globalNavigator.navigateTo(RouteGlobal.Home)
-    } else globalNavigator.navigateTo(RouteGlobal.Onboarding)
-
     val rootBackStack = globalNavigator.rootBackStack
+
+    LaunchedEffect(isLoggedIn) {
+        val targetRoute = when (isLoggedIn) {
+            true -> RouteGlobal.Home
+            false -> RouteGlobal.Onboarding
+            null -> null
+        }
+
+        if (targetRoute != null && rootBackStack.lastOrNull() != targetRoute) {
+            globalNavigator.clearAndNavigateTo(targetRoute)
+        }
+    }
+
+    if (rootBackStack.isEmpty()) return
 
     NavDisplay(
         backStack = rootBackStack,
