@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.CarLocate" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.CarLocate" parent="android:Theme.Material.NoActionBar" />
 
     <style name="Theme.CarLocate.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#FFF4F1</item>
+        <item name="windowSplashScreenBackground">#121212</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/logo_parkspot_foreground</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/logo_parkspot_background</item>
         <item name="postSplashScreenTheme">@style/Theme.CarLocate</item>
