@@ -1,4 +1,4 @@
-rootProject.name = "CarLocate"
+rootProject.name = "ParkSpot"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
