@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -28,6 +29,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
+import com.mapbox.maps.MapView
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
@@ -35,8 +37,6 @@ import com.mapbox.maps.extension.compose.annotation.ViewAnnotation
 import com.mapbox.maps.plugin.animation.MapAnimationOptions
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
-import com.mapbox.maps.plugin.viewport.data.FollowPuckViewportStateOptions
-import com.mapbox.maps.plugin.viewport.viewport
 import com.mapbox.maps.viewannotation.geometry
 import com.mapbox.maps.viewannotation.viewAnnotationOptions
 import kotlinx.coroutines.delay
@@ -51,6 +51,7 @@ actual fun FullMap(
     userLocation: UserLocation,
     parkingSpots: List<ParkingSpot>,
     onMapClick: (latitude: Double, longitude: Double) -> Unit,
+    onCameraCenterChanged: (latitude: Double, longitude: Double) -> Unit,
     onSpotClick: (ParkingSpot) -> Unit,
     cameraCenterTrigger: Int,
     zoomLevel: Double,
@@ -58,6 +59,9 @@ actual fun FullMap(
     selectedSpotLatitude: Double?,
     selectedSpotLongitude: Double?,
     isSelectingSpotLocation: Boolean,
+    focusSpotLatitude: Double?,
+    focusSpotLongitude: Double?,
+    focusSpotTrigger: Int,
 ) {
     if (!locationReady) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -75,6 +79,8 @@ actual fun FullMap(
         }
     }
 
+    var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+
     // Zoom in/out: animación suave de 300ms
     LaunchedEffect(zoomLevel) {
         mapViewportState.easeTo(
@@ -87,7 +93,7 @@ actual fun FullMap(
         )
     }
 
-    // Botón de centrar: flyTo animado
+    // Botón de centrar: flyTo animado al usuario
     LaunchedEffect(cameraCenterTrigger) {
         if (cameraCenterTrigger > 0) {
             mapViewportState.flyTo(
@@ -104,64 +110,98 @@ actual fun FullMap(
         }
     }
 
-    MapboxMap(
-        modifier = modifier.fillMaxSize(),
-        mapViewportState = mapViewportState,
-        onMapClickListener = { point ->
-            onMapClick(point.latitude(), point.longitude())
-            true
-        },
-        scaleBar = {},
-        logo = {},
-        attribution = {},
-    ) {
-        parkingSpots.forEach { spot ->
-            ViewAnnotation(
-                options = viewAnnotationOptions {
-                    geometry(Point.fromLngLat(spot.longitude, spot.latitude))
-                    allowOverlap(true)
-                    allowOverlapWithPuck(true)
+    // Foco externo: anima hacia un spot concreto (ej. desde ParkingDetail)
+    LaunchedEffect(focusSpotTrigger, focusSpotLatitude, focusSpotLongitude) {
+        if (focusSpotTrigger > 0 && focusSpotLatitude != null && focusSpotLongitude != null) {
+            mapViewportState.flyTo(
+                cameraOptions = CameraOptions.Builder()
+                    .center(Point.fromLngLat(focusSpotLongitude, focusSpotLatitude))
+                    .zoom(18.0)
+                    .bearing(0.0)
+                    .pitch(0.0)
+                    .build(),
+                animationOptions = MapAnimationOptions.mapAnimationOptions {
+                    duration(1400L)
                 }
-            ) {
-                SpotMapMarker(spot = spot, onClick = { onSpotClick(spot) })
-            }
-        }
-
-        if (isSelectingSpotLocation && selectedSpotLatitude != null && selectedSpotLongitude != null) {
-            ViewAnnotation(
-                options = viewAnnotationOptions {
-                    geometry(Point.fromLngLat(selectedSpotLongitude, selectedSpotLatitude))
-                    allowOverlap(true)
-                    allowOverlapWithPuck(true)
-                }
-            ) {
-                DraftSpotMapMarker()
-            }
-        }
-
-        MapEffect(Unit) { mapView ->
-            mapView.location.apply {
-                locationPuck = createDefault2DPuck(withBearing = true)
-                enabled = true
-            }
-            mapView.viewport.transitionTo(
-                targetState = mapView.viewport.makeFollowPuckViewportState(
-                    options = FollowPuckViewportStateOptions.Builder()
-                        .zoom(zoomLevel)
-                        .pitch(0.0)
-                        .build()
-                ),
-                transition = mapView.viewport.makeImmediateViewportTransition()
             )
         }
+    }
+
+    // Mientras selecciona spot, la coordenada sigue el centro del mapa.
+    LaunchedEffect(isSelectingSpotLocation, mapViewRef) {
+        while (isSelectingSpotLocation) {
+            val center = mapViewRef?.mapboxMap?.cameraState?.center
+            if (center != null) {
+                onCameraCenterChanged(center.latitude(), center.longitude())
+            }
+            delay(120L)
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        MapboxMap(
+            modifier = Modifier.fillMaxSize(),
+            mapViewportState = mapViewportState,
+            onMapClickListener = { point ->
+                if (isSelectingSpotLocation) {
+                    mapViewportState.easeTo(
+                        cameraOptions = CameraOptions.Builder()
+                            .center(point)
+                            .build(),
+                        animationOptions = MapAnimationOptions.mapAnimationOptions {
+                            duration(300L)
+                        }
+                    )
+                }
+                onMapClick(point.latitude(), point.longitude())
+                true
+            },
+            scaleBar = {},
+            logo = {},
+            attribution = {},
+        ) {
+            parkingSpots.forEach { spot ->
+                ViewAnnotation(
+                    options = viewAnnotationOptions {
+                        geometry(Point.fromLngLat(spot.longitude, spot.latitude))
+                        allowOverlap(true)
+                        allowOverlapWithPuck(true)
+                    }
+                ) {
+                    SpotMapMarker(spot = spot, onClick = { onSpotClick(spot) })
+                }
+            }
+
+            MapEffect(Unit) { mapView ->
+                mapViewRef = mapView
+                mapView.location.apply {
+                    locationPuck = createDefault2DPuck(withBearing = true)
+                    enabled = true
+                }
+            }
+        }
+
+        if (isSelectingSpotLocation) {
+            DraftSpotCenterMarker(
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+    }
+
+    val keepCommonSelectionState = selectedSpotLatitude != null && selectedSpotLongitude != null
+    if (keepCommonSelectionState) {
+        // El pin es fijo al centro; el estado se actualiza por centro de cámara.
     }
 }
 
 @Composable
-private fun DraftSpotMapMarker() {
+private fun DraftSpotCenterMarker(
+    modifier: Modifier = Modifier,
+) {
     Box(
-        modifier = Modifier
-            .size(52.dp)
+        modifier = modifier
+            .size(54.dp)
+            .shadow(8.dp, CircleShape)
             .background(MaterialTheme.colorScheme.tertiary, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
@@ -169,7 +209,7 @@ private fun DraftSpotMapMarker() {
             imageVector = Icons.Default.LocationOn,
             contentDescription = "Punto seleccionado",
             tint = MaterialTheme.colorScheme.onTertiary,
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(36.dp),
         )
     }
 }

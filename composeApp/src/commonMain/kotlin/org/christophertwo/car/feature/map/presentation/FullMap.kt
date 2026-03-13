@@ -11,6 +11,7 @@ expect fun FullMap(
     userLocation: UserLocation,
     parkingSpots: List<ParkingSpot> = emptyList(),
     onMapClick: (latitude: Double, longitude: Double) -> Unit = { _, _ -> },
+    onCameraCenterChanged: (latitude: Double, longitude: Double) -> Unit = { _, _ -> },
     onSpotClick: (ParkingSpot) -> Unit = {},
     cameraCenterTrigger: Int = 0,
     zoomLevel: Double = 16.0,
@@ -18,4 +19,7 @@ expect fun FullMap(
     selectedSpotLatitude: Double? = null,
     selectedSpotLongitude: Double? = null,
     isSelectingSpotLocation: Boolean = false,
+    focusSpotLatitude: Double? = null,
+    focusSpotLongitude: Double? = null,
+    focusSpotTrigger: Int = 0,
 )

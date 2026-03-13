@@ -70,7 +70,6 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.christophertwo.car.core.common.format
 import org.christophertwo.car.feature.parking.domain.model.ParkingSpot
-import org.christophertwo.car.feature.parking.presentation.components.SpotLocationMapSheet
 
 @Composable
 fun ParkingDetailRoot(
@@ -118,14 +117,6 @@ fun ParkingDetailScreen(
                 onAction = onAction,
                 onPhotoClick = { expandedImagePath = it },
             )
-
-            // BottomSheet con el mapa de ubicación
-            if (state.showLocationMap) {
-                SpotLocationMapSheet(
-                    spot = state.spot,
-                    onDismiss = { onAction(ParkingDetailAction.OnDismissLocationMap) },
-                )
-            }
 
             // Diálogo picker de hora límite
             if (state.showParkUntilPicker) {

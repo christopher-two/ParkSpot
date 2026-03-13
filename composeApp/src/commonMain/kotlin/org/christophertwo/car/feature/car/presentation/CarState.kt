@@ -20,6 +20,9 @@ data class CarState(
     // Controles de Cámara / Mapbox Viewport
     val zoomLevel: Double = 16.0,
     val cameraCenterTrigger: Int = 0,
+    val focusSpotLatitude: Double? = null,
+    val focusSpotLongitude: Double? = null,
+    val focusSpotTrigger: Int = 0,
 
     // Nuevos campos para ParkingSpots locales
     val showAddSpotDialog: Boolean = false,

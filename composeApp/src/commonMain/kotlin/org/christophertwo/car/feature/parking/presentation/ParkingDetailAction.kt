@@ -6,10 +6,8 @@ sealed interface ParkingDetailAction {
     data object OnBack : ParkingDetailAction
     /** El usuario indica que ya no está aparcado aquí */
     data object OnMarkInactive : ParkingDetailAction
-    /** Abre el bottom sheet del mapa de ubicación */
+    /** Abre la ubicación en el mapa principal */
     data object OnShowLocationMap : ParkingDetailAction
-    /** Cierra el bottom sheet del mapa de ubicación */
-    data object OnDismissLocationMap : ParkingDetailAction
     /** Abre el diálogo para configurar el tiempo límite */
     data object OnShowParkUntilPicker : ParkingDetailAction
     /** Cierra el diálogo del tiempo límite */
@@ -23,4 +21,3 @@ sealed interface ParkingDetailAction {
     /** Actualiza los minutos seleccionados en el picker */
     data class OnPickerMinutesChanged(val minutes: Int) : ParkingDetailAction
 }
-

@@ -6,6 +6,7 @@ import org.christophertwo.car.feature.parking.domain.model.ParkingSpot
 sealed interface CarAction {
     // Mapa
     data class OnMapClicked(val latitude: Double, val longitude: Double) : CarAction
+    data class OnMapCenterChanged(val latitude: Double, val longitude: Double) : CarAction
     data class OnSpotClicked(val spot: ParkingSpot) : CarAction
     // Abre el sheet de guardado con la ubicación actual del usuario
     data object OnParkHere : CarAction

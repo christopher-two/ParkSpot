@@ -18,6 +18,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.christophertwo.car.core.common.RouteHome
 import org.christophertwo.car.feature.car.domain.usecase.GetCurrentLocationUseCase
+import org.christophertwo.car.feature.map.presentation.MapFocusCoordinator
 import org.christophertwo.car.feature.navigation.controller.NavigationController
 import org.christophertwo.car.feature.parking.domain.model.ParkingSpot
 import org.christophertwo.car.feature.parking.domain.usecase.GetAllParkingSpotsUseCase
@@ -31,6 +32,10 @@ class CarViewModel(
     private val permissionsController: PermissionsController,
     private val navigationController: NavigationController,
 ) : ViewModel() {
+
+    companion object {
+        private const val CENTER_EPSILON = 0.000001
+    }
 
     private val _state = MutableStateFlow(CarState())
     val state = _state
@@ -48,6 +53,19 @@ class CarViewModel(
                 getAllParkingSpotsUseCase().collect { spots ->
                     // Solo mostrar en el mapa los spots activos
                     _state.update { it.copy(parkingSpots = spots.filter { s -> s.isActive }) }
+                }
+            }
+            viewModelScope.launch {
+                MapFocusCoordinator.focusRequest.collect { request ->
+                    request ?: return@collect
+                    _state.update {
+                        it.copy(
+                            focusSpotLatitude = request.latitude,
+                            focusSpotLongitude = request.longitude,
+                            focusSpotTrigger = it.focusSpotTrigger + 1,
+                            zoomLevel = 18.0,
+                        )
+                    }
                 }
             }
         }
@@ -84,6 +102,22 @@ class CarViewModel(
                     it
                 }
             }
+            is CarAction.OnMapCenterChanged -> _state.update {
+                if (!it.isSelectingSpotLocation) {
+                    it
+                } else {
+                    val latDiff = kotlin.math.abs((it.selectedSpotLatitude ?: 0.0) - action.latitude)
+                    val lonDiff = kotlin.math.abs((it.selectedSpotLongitude ?: 0.0) - action.longitude)
+                    if (latDiff < CENTER_EPSILON && lonDiff < CENTER_EPSILON) {
+                        it
+                    } else {
+                        it.copy(
+                            selectedSpotLatitude = action.latitude,
+                            selectedSpotLongitude = action.longitude,
+                        )
+                    }
+                }
+            }
             is CarAction.OnSpotClicked -> {
                 navigationController.navigateInTab(RouteHome.ParkingDetail(action.spot.id))
             }
@@ -93,6 +127,9 @@ class CarViewModel(
                     showAddSpotDialog = false,
                     selectedSpotLatitude = it.userLocation.latitude,
                     selectedSpotLongitude = it.userLocation.longitude,
+                    focusSpotLatitude = it.userLocation.latitude,
+                    focusSpotLongitude = it.userLocation.longitude,
+                    focusSpotTrigger = it.focusSpotTrigger + 1,
                     note = "",
                     photoPaths = emptyList(),
                     parkUntil = null,

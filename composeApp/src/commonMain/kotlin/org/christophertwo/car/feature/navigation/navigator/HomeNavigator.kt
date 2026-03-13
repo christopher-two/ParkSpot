@@ -25,6 +25,14 @@ class HomeNavigator {
         currentTab = tab
     }
 
+    fun switchTabToRoot(tab: AppTab) {
+        currentTab = tab
+        val stack = stacks[tab] ?: return
+        if (stack.size > 1) {
+            stack.subList(1, stack.size).clear()
+        }
+    }
+
     fun navigateTo(route: NavKey) {
         stacks[currentTab]?.add(route)
     }

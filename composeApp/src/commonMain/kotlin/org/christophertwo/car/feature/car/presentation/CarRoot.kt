@@ -50,6 +50,7 @@ fun CarScreen(
             userLocation = state.userLocation,
             parkingSpots = state.parkingSpots,
             onMapClick = { lat, lon -> onAction(CarAction.OnMapClicked(lat, lon)) },
+            onCameraCenterChanged = { lat, lon -> onAction(CarAction.OnMapCenterChanged(lat, lon)) },
             onSpotClick = { spot -> onAction(CarAction.OnSpotClicked(spot)) },
             cameraCenterTrigger = state.cameraCenterTrigger,
             zoomLevel = state.zoomLevel,
@@ -57,6 +58,9 @@ fun CarScreen(
             selectedSpotLatitude = state.selectedSpotLatitude,
             selectedSpotLongitude = state.selectedSpotLongitude,
             isSelectingSpotLocation = state.isSelectingSpotLocation,
+            focusSpotLatitude = state.focusSpotLatitude,
+            focusSpotLongitude = state.focusSpotLongitude,
+            focusSpotTrigger = state.focusSpotTrigger,
         )
 
         // Capa 2 — Controles superpuestos

@@ -6,8 +6,6 @@ data class ParkingDetailState(
     val spot: ParkingSpot? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    /** Controla si el bottom sheet con el mapa está abierto */
-    val showLocationMap: Boolean = false,
     /** Controla si el picker de hora límite está abierto */
     val showParkUntilPicker: Boolean = false,
     /** Horas seleccionadas en el picker (0..23) */
@@ -17,4 +15,3 @@ data class ParkingDetailState(
     /** Tiempo restante en segundos (null = sin timer) */
     val remainingSeconds: Long? = null,
 )
-

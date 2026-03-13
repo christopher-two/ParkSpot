@@ -31,6 +31,10 @@ class NavigationControllerImpl(
         homeNavigator.switchTab(tab)
     }
 
+    override fun switchTabToRoot(tab: AppTab) {
+        homeNavigator.switchTabToRoot(tab)
+    }
+
     override fun navigateInTab(route: NavKey) {
         homeNavigator.navigateTo(route)
     }

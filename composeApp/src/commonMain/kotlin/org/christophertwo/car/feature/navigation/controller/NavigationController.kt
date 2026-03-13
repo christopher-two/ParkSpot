@@ -44,6 +44,11 @@ interface NavigationController {
     fun switchTab(tab: AppTab)
 
     /**
+     * Switch to a tab and reset its stack to the root route.
+     */
+    fun switchTabToRoot(tab: AppTab)
+
+    /**
      * Navigate to a route within the current Home tab.
      *
      * @param route The route to navigate to within the tab

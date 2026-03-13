@@ -12,6 +12,8 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import org.christophertwo.car.core.common.AppTab
+import org.christophertwo.car.feature.map.presentation.MapFocusCoordinator
 import org.christophertwo.car.feature.navigation.controller.NavigationController
 import org.christophertwo.car.feature.parking.domain.usecase.GetParkingSpotByIdUseCase
 import org.christophertwo.car.feature.parking.domain.usecase.MarkSpotInactiveUseCase
@@ -75,11 +77,11 @@ class ParkingDetailViewModel(
                 }
             }
 
-            is ParkingDetailAction.OnShowLocationMap ->
-                _state.update { it.copy(showLocationMap = true) }
-
-            is ParkingDetailAction.OnDismissLocationMap ->
-                _state.update { it.copy(showLocationMap = false) }
+            is ParkingDetailAction.OnShowLocationMap -> {
+                val spot = _state.value.spot ?: return
+                MapFocusCoordinator.focusOn(spot.latitude, spot.longitude)
+                navigationController.switchTabToRoot(AppTab.CAR)
+            }
 
             is ParkingDetailAction.OnShowParkUntilPicker -> {
                 // Inicializar el picker con la hora actual + 1 hora
@@ -128,4 +130,3 @@ class ParkingDetailViewModel(
         super.onCleared()
     }
 }
-
