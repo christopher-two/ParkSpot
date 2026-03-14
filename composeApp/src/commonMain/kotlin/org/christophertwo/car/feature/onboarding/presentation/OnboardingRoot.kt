@@ -40,13 +40,13 @@ private data class OnboardingPage(
 private val pages = listOf(
     OnboardingPage(
         icon = FontAwesomeIcons.Solid.Car,
-        title = "Bienvenido a CarLocate",
+        title = "Bienvenido a ParkSpot",
         description = "Nunca más olvides dónde aparcaste tu carro. Guarda la ubicación exacta con un solo toque.",
     ),
     OnboardingPage(
         icon = FontAwesomeIcons.Solid.Wifi,
-        title = "100% Sin internet",
-        description = "Tus datos nunca salen de tu dispositivo. CarLocate funciona completamente sin conexión a internet y no comparte nada con la nube.",
+        title = "100% sin internet",
+        description = "Tus datos nunca salen de tu dispositivo. ParkSpot funciona completamente sin conexión a internet y no comparte nada con la nube.",
     ),
     OnboardingPage(
         icon = FontAwesomeIcons.Solid.MapMarkerAlt,
