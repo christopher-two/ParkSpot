@@ -1,6 +1,6 @@
-# ParkSpot
+# CarLocate (ParkSpot)
 
-ParkSpot es una app Kotlin Multiplatform para guardar la ubicacion de tu auto estacionado, consultar historial de lugares guardados y ver detalles de cada registro.
+CarLocate es una app Kotlin Multiplatform para guardar la ubicacion de tu auto estacionado, consultar historial de lugares guardados y abrir el detalle de cada ticket.
 
 ## Que hace el proyecto
 
@@ -8,7 +8,34 @@ ParkSpot es una app Kotlin Multiplatform para guardar la ubicacion de tu auto es
 - Seleccion y guardado de ubicaciones de estacionamiento.
 - Historial de lugares guardados con pantalla de detalle.
 - Mapa en Android con Mapbox.
-- Soporte iOS para la app compartida (el mapa nativo en iOS aun no esta implementado).
+- Soporte iOS para la app compartida (mapa nativo iOS aun en estado base).
+- Timer de ticket de parking con notificaciones.
+
+## Timer y notificaciones de parking
+
+### Flujo funcional
+
+1. El usuario crea un spot desde la pantalla de mapa (`Car`) y puede definir `parkUntil`.
+2. Si hay `parkUntil`, se solicita permiso de notificaciones en Android (`POST_NOTIFICATIONS`).
+3. Al guardar, se inicia un timer nativo sin depender de abrir `ParkingDetail`.
+4. El timer sigue activo con `Foreground Service` mientras haya tiempo restante.
+
+### Android
+
+- Implementacion nativa en `composeApp/src/androidMain/.../ParkingForegroundService.kt`.
+- Notificacion persistente con cronometro (`setUsesChronometer(true)`).
+- Deep link al ticket al tocar la notificacion.
+- Alertas adicionales automaticas al:
+  - 50% del tiempo restante.
+  - 10% del tiempo restante.
+  - fin del ticket.
+- El servicio queda desacoplado de la pantalla de detalle para que el timer continue fuera de UI.
+
+### iOS
+
+- Existe implementacion base en `composeApp/src/iosMain/.../ParkingNotificationService.ios.kt`.
+- Usa `UNUserNotificationCenter` para estructura minima de notificaciones.
+- No replica aun la experiencia foreground en vivo de Android.
 
 ## Stack tecnico
 
@@ -53,6 +80,15 @@ O por CLI/CI:
 
 Tambien se mantiene compatibilidad con `MAPBOX_SECRET_TOKEN` como fallback.
 
+## Permisos Android relevantes
+
+Declarados en `androidapp/src/main/AndroidManifest.xml`:
+
+- `android.permission.POST_NOTIFICATIONS`
+- `android.permission.FOREGROUND_SERVICE`
+- `android.permission.FOREGROUND_SERVICE_SPECIAL_USE`
+- Permisos de ubicacion y camara para funcionalidades del mapa/captura.
+
 ## Ejecutar en Android
 
 ```bash
@@ -67,7 +103,8 @@ Abre `iosApp/` en Xcode y ejecuta el target `iosApp`.
 
 - `local.properties` no debe versionarse.
 - Si un token fue expuesto previamente, debes rotarlo en Mapbox.
+- Si el usuario deniega notificaciones en Android, el timer visual en app funciona pero las notificaciones pueden no mostrarse.
 
 ---
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html).
