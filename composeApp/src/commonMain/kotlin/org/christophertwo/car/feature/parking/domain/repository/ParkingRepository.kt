@@ -5,7 +5,7 @@ import kotlinx.datetime.LocalDateTime
 import org.christophertwo.car.feature.parking.domain.model.ParkingSpot
 
 interface ParkingRepository {
-    suspend fun saveParkingSpot(spot: ParkingSpot)
+    suspend fun saveParkingSpot(spot: ParkingSpot): Long
     fun getAllParkingSpots(): Flow<List<ParkingSpot>>
     fun getParkingSpotById(id: Long): Flow<ParkingSpot?>
     suspend fun deleteParkingSpot(id: Long)
@@ -16,4 +16,3 @@ interface ParkingRepository {
     /** Desactiva todos los spots activos (al guardar uno nuevo) */
     suspend fun deactivateAllSpots()
 }
-

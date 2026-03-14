@@ -15,6 +15,7 @@ kotlin {
     androidLibrary {
         namespace = "org.christophertwo.car"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
 
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
@@ -45,11 +46,13 @@ kotlin {
             api(libs.ktor.client.cio)
 
             api(libs.androidx.room.sqlite.wrapper)
+            implementation(libs.androidx.core.ktx)
+            implementation(libs.androidx.activity.compose)
 
             implementation(libs.coil.okhttp)
 
-            implementation("com.mapbox.maps:android-ndk27:11.19.0")
-            implementation("com.mapbox.extension:maps-compose-ndk27:11.19.0")
+            implementation(libs.android.ndk27)
+            implementation(libs.maps.compose.ndk27)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

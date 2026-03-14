@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -69,19 +70,30 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.christophertwo.car.core.common.format
+import org.christophertwo.car.core.permissions.rememberPermissionHandler
 import org.christophertwo.car.feature.parking.domain.model.ParkingSpot
+import org.christophertwo.car.feature.parking.notification.rememberParkingNotificationService
 
 @Composable
 fun ParkingDetailRoot(
     id: Long,
     viewModel: ParkingDetailViewModel,
 ) {
+    val notificationService = rememberParkingNotificationService(ticketId = id)
+    val permissionHandler = rememberPermissionHandler()
+
+    DisposableEffect(viewModel, notificationService, permissionHandler) {
+        viewModel.bindPlatformServices(notificationService, permissionHandler)
+        onDispose { }
+    }
+
     LaunchedEffect(id) { viewModel.loadSpot(id) }
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     ParkingDetailScreen(
         state = state,
         onAction = viewModel::onAction,
+        permissionHandler = permissionHandler,
     )
 }
 
@@ -90,6 +102,7 @@ fun ParkingDetailRoot(
 fun ParkingDetailScreen(
     state: ParkingDetailState,
     onAction: (ParkingDetailAction) -> Unit,
+    permissionHandler: org.christophertwo.car.core.permissions.PermissionHandler,
 ) {
     var expandedImagePath by remember { mutableStateOf<String?>(null) }
 
@@ -137,7 +150,10 @@ fun ParkingDetailScreen(
                             0,
                             0,
                         )
-                        onAction(ParkingDetailAction.OnSaveParkUntil(parkUntil))
+
+                        permissionHandler.requestPostNotificationsPermission {
+                            onAction(ParkingDetailAction.OnSaveParkUntil(parkUntil))
+                        }
                     },
                     onDismiss = { onAction(ParkingDetailAction.OnDismissParkUntilPicker) },
                 )

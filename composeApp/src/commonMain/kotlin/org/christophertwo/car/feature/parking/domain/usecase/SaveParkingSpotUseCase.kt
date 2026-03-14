@@ -6,8 +6,7 @@ import org.christophertwo.car.feature.parking.domain.repository.ParkingRepositor
 class SaveParkingSpotUseCase(
     private val repository: ParkingRepository
 ) {
-    suspend operator fun invoke(spot: ParkingSpot) {
-        repository.saveParkingSpot(spot)
+    suspend operator fun invoke(spot: ParkingSpot): Long {
+        return repository.saveParkingSpot(spot)
     }
 }
-

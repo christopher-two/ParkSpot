@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.christophertwo.car.core.permissions.rememberPermissionHandler
 import org.christophertwo.car.core.ui.CarLocateTheme
 import org.christophertwo.car.feature.car.domain.model.UserLocation
 import org.christophertwo.car.feature.car.presentation.components.MapOverlayControls
@@ -22,7 +23,20 @@ import org.christophertwo.car.feature.map.presentation.FullMap
 @Composable
 fun CarRoot(viewModel: CarViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    CarScreen(state = state, onAction = viewModel::onAction)
+    val permissionHandler = rememberPermissionHandler()
+
+    CarScreen(
+        state = state,
+        onAction = { action ->
+            if (action is CarAction.OnSave && state.parkUntil != null) {
+                permissionHandler.requestPostNotificationsPermission { _ ->
+                    viewModel.onAction(action)
+                }
+            } else {
+                viewModel.onAction(action)
+            }
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -13,11 +13,14 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.christophertwo.car.core.common.AppTab
+import org.christophertwo.car.core.permissions.PermissionHandler
 import org.christophertwo.car.feature.map.presentation.MapFocusCoordinator
 import org.christophertwo.car.feature.navigation.controller.NavigationController
 import org.christophertwo.car.feature.parking.domain.usecase.GetParkingSpotByIdUseCase
 import org.christophertwo.car.feature.parking.domain.usecase.MarkSpotInactiveUseCase
 import org.christophertwo.car.feature.parking.domain.usecase.UpdateParkUntilUseCase
+import org.christophertwo.car.feature.parking.notification.NoOpParkingNotificationService
+import org.christophertwo.car.feature.parking.notification.ParkingNotificationService
 
 class ParkingDetailViewModel(
     private val getParkingSpotByIdUseCase: GetParkingSpotByIdUseCase,
@@ -35,6 +38,16 @@ class ParkingDetailViewModel(
         )
 
     private var timerJob: Job? = null
+    private var notificationService: ParkingNotificationService = NoOpParkingNotificationService
+    private var permissionHandler: PermissionHandler? = null
+
+    fun bindPlatformServices(
+        notificationService: ParkingNotificationService,
+        permissionHandler: PermissionHandler,
+    ) {
+        this.notificationService = notificationService
+        this.permissionHandler = permissionHandler
+    }
 
     fun loadSpot(id: Long) {
         viewModelScope.launch {
@@ -50,16 +63,35 @@ class ParkingDetailViewModel(
     private fun restartTimer(parkUntil: kotlinx.datetime.LocalDateTime?) {
         timerJob?.cancel()
         if (parkUntil == null) {
+            notificationService.cancel()
             _state.update { it.copy(remainingSeconds = null) }
             return
         }
+
+        val untilInstant = parkUntil.toInstant(TimeZone.currentSystemDefault())
+        val endTimeMillis = untilInstant.toEpochMilliseconds()
+        val canNotify = permissionHandler?.hasPostNotificationsPermission() == true
+        if (canNotify) {
+            notificationService.startTimer(endTimeMillis)
+        } else {
+            notificationService.cancel()
+        }
+
         timerJob = viewModelScope.launch {
             while (true) {
                 val now = kotlin.time.Clock.System.now()
-                val until = parkUntil.toInstant(TimeZone.currentSystemDefault())
-                val diff = (until - now).inWholeSeconds
-                _state.update { it.copy(remainingSeconds = if (diff > 0) diff else 0L) }
-                if (diff <= 0) break
+                val diff = (untilInstant - now).inWholeSeconds
+                val safeDiff = if (diff > 0) diff else 0L
+                _state.update { it.copy(remainingSeconds = safeDiff) }
+
+                if (canNotify) {
+                    notificationService.updateProgress(formatRemaining(safeDiff))
+                }
+
+                if (diff <= 0) {
+                    notificationService.cancel()
+                    break
+                }
                 delay(1_000L)
             }
         }
@@ -73,6 +105,7 @@ class ParkingDetailViewModel(
                 val id = _state.value.spot?.id ?: return
                 viewModelScope.launch {
                     markSpotInactiveUseCase(id)
+                    notificationService.cancel()
                     navigationController.backInTab()
                 }
             }
@@ -119,14 +152,23 @@ class ParkingDetailViewModel(
                 viewModelScope.launch {
                     updateParkUntilUseCase(id, null)
                     timerJob?.cancel()
+                    notificationService.cancel()
                     _state.update { it.copy(remainingSeconds = null) }
                 }
             }
         }
     }
 
+    private fun formatRemaining(seconds: Long): String {
+        val hours = (seconds / 3600).toString().padStart(2, '0')
+        val minutes = ((seconds % 3600) / 60).toString().padStart(2, '0')
+        val secs = (seconds % 60).toString().padStart(2, '0')
+        return "$hours:$minutes:$secs"
+    }
+
     override fun onCleared() {
         timerJob?.cancel()
+        notificationService.cancel()
         super.onCleared()
     }
 }

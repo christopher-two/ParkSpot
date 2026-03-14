@@ -11,7 +11,7 @@ import org.christophertwo.car.feature.parking.data.local.entity.ParkingSpotEntit
 interface ParkingSpotDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(entity: ParkingSpotEntity)
+    suspend fun insert(entity: ParkingSpotEntity): Long
 
     @Query("SELECT * FROM parking_spots ORDER BY savedAt DESC")
     fun getAll(): Flow<List<ParkingSpotEntity>>
@@ -34,4 +34,3 @@ interface ParkingSpotDao {
     @Query("UPDATE parking_spots SET isActive = 0 WHERE isActive = 1")
     suspend fun deactivateAll()
 }
-

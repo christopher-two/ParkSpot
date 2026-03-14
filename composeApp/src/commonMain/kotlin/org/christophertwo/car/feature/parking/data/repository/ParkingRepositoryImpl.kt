@@ -13,8 +13,8 @@ class ParkingRepositoryImpl(
     private val dao: ParkingSpotDao
 ) : ParkingRepository {
 
-    override suspend fun saveParkingSpot(spot: ParkingSpot) {
-        dao.insert(spot.toEntity())
+    override suspend fun saveParkingSpot(spot: ParkingSpot): Long {
+        return dao.insert(spot.toEntity())
     }
 
     override fun getAllParkingSpots(): Flow<List<ParkingSpot>> {
@@ -41,4 +41,3 @@ class ParkingRepositoryImpl(
         dao.deactivateAll()
     }
 }
-

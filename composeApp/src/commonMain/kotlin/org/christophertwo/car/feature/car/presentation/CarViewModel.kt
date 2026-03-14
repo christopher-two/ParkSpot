@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.christophertwo.car.core.common.AppTab
 import org.christophertwo.car.core.common.RouteHome
 import org.christophertwo.car.feature.car.domain.usecase.GetCurrentLocationUseCase
 import org.christophertwo.car.feature.map.presentation.MapFocusCoordinator
@@ -181,6 +182,8 @@ class CarViewModel(
                     .toLocalDateTime(TimeZone.currentSystemDefault())
                 val latitudeToSave = _state.value.selectedSpotLatitude ?: _state.value.userLocation.latitude
                 val longitudeToSave = _state.value.selectedSpotLongitude ?: _state.value.userLocation.longitude
+                val selectedParkUntil = _state.value.parkUntil
+
                 val spot = ParkingSpot(
                     latitude = latitudeToSave,
                     longitude = longitudeToSave,
@@ -188,9 +191,10 @@ class CarViewModel(
                     savedAt = now,
                     note = _state.value.note,
                     isActive = true,
-                    parkUntil = _state.value.parkUntil,
+                    parkUntil = selectedParkUntil,
                 )
-                saveParkingSpotUseCase(spot)
+                val savedSpotId = saveParkingSpotUseCase(spot)
+
                 _state.update {
                     it.copy(
                         isSaving = false,
@@ -205,6 +209,12 @@ class CarViewModel(
                         parkUntil = null,
                     )
                 }
+
+                if (selectedParkUntil != null && savedSpotId > 0L) {
+                    navigationController.switchTabToRoot(AppTab.HISTORY)
+                    navigationController.navigateInTab(RouteHome.ParkingDetail(savedSpotId))
+                }
+
                 loadLocation()
             } catch (e: Exception) {
                 _state.update {
