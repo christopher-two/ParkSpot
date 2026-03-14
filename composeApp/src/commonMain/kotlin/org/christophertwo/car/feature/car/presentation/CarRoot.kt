@@ -19,18 +19,31 @@ import org.christophertwo.car.feature.car.domain.model.UserLocation
 import org.christophertwo.car.feature.car.presentation.components.MapOverlayControls
 import org.christophertwo.car.feature.car.presentation.components.SaveSpotSheet
 import org.christophertwo.car.feature.map.presentation.FullMap
+import org.christophertwo.car.feature.parking.notification.rememberParkingNotificationService
 
 @Composable
 fun CarRoot(viewModel: CarViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val permissionHandler = rememberPermissionHandler()
+    val pendingTicketId = state.pendingTimerTicketId
+    val pendingEndTime = state.pendingTimerEndTimeMillis
+    val parkingNotificationService = rememberParkingNotificationService(ticketId = pendingTicketId ?: -1L)
+
+    LaunchedEffect(pendingTicketId, pendingEndTime) {
+        if (pendingTicketId != null && pendingTicketId > 0L && pendingEndTime != null && pendingEndTime > 0L) {
+            parkingNotificationService.startTimer(pendingEndTime)
+            viewModel.onAction(CarAction.OnTimerNotificationStarted)
+        }
+    }
 
     CarScreen(
         state = state,
         onAction = { action ->
             if (action is CarAction.OnSave && state.parkUntil != null) {
-                permissionHandler.requestPostNotificationsPermission { _ ->
-                    viewModel.onAction(action)
+                permissionHandler.requestPostNotificationsPermission { granted ->
+                    if (granted) {
+                        viewModel.onAction(action)
+                    }
                 }
             } else {
                 viewModel.onAction(action)

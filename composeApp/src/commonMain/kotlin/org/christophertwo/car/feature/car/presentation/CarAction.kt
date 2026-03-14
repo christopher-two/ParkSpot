@@ -23,6 +23,7 @@ sealed interface CarAction {
     // Guardado
     data object OnSave : CarAction
     data object OnDismissSuccess : CarAction
+    data object OnTimerNotificationStarted : CarAction
     // Campos del formulario de guardado
     data class OnNoteChanged(val text: String) : CarAction
     data class OnPhotoAdded(val path: String) : CarAction

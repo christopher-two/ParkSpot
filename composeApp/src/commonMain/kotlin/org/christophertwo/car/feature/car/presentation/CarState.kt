@@ -39,6 +39,9 @@ data class CarState(
     val parkUntil: LocalDateTime? = null,
     val isSaving: Boolean = false,
     val saveSuccess: Boolean = false,
+    // Efecto one-shot: arrancar timer nativo para el spot recién creado.
+    val pendingTimerTicketId: Long? = null,
+    val pendingTimerEndTimeMillis: Long? = null,
     val error: String? = null,
     val permissionsGranted: Boolean = false
 )

@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import org.christophertwo.car.core.common.AppTab
 import org.christophertwo.car.core.common.RouteHome
 import org.christophertwo.car.feature.car.domain.usecase.GetCurrentLocationUseCase
 import org.christophertwo.car.feature.map.presentation.MapFocusCoordinator
@@ -159,6 +159,9 @@ class CarViewModel(
             is CarAction.OnMarkerDismissed -> _state.update { it.copy(selectedMarker = null) }
             is CarAction.OnSave -> saveParking()
             is CarAction.OnDismissSuccess -> _state.update { it.copy(saveSuccess = false) }
+            is CarAction.OnTimerNotificationStarted -> _state.update {
+                it.copy(pendingTimerTicketId = null, pendingTimerEndTimeMillis = null)
+            }
             is CarAction.OnNoteChanged -> _state.update { it.copy(note = action.text) }
             is CarAction.OnPhotoAdded -> _state.update { it.copy(photoPaths = it.photoPaths + action.path) }
             is CarAction.OnPhotoRemoved -> _state.update {
@@ -194,6 +197,9 @@ class CarViewModel(
                     parkUntil = selectedParkUntil,
                 )
                 val savedSpotId = saveParkingSpotUseCase(spot)
+                val pendingEndTime = selectedParkUntil
+                    ?.toInstant(TimeZone.currentSystemDefault())
+                    ?.toEpochMilliseconds()
 
                 _state.update {
                     it.copy(
@@ -207,12 +213,9 @@ class CarViewModel(
                         note = "",
                         photoPaths = emptyList(),
                         parkUntil = null,
+                        pendingTimerTicketId = if (savedSpotId > 0L && pendingEndTime != null) savedSpotId else null,
+                        pendingTimerEndTimeMillis = pendingEndTime,
                     )
-                }
-
-                if (selectedParkUntil != null && savedSpotId > 0L) {
-                    navigationController.switchTabToRoot(AppTab.HISTORY)
-                    navigationController.navigateInTab(RouteHome.ParkingDetail(savedSpotId))
                 }
 
                 loadLocation()

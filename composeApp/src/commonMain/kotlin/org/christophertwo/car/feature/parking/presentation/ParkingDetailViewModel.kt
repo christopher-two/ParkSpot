@@ -168,7 +168,6 @@ class ParkingDetailViewModel(
 
     override fun onCleared() {
         timerJob?.cancel()
-        notificationService.cancel()
         super.onCleared()
     }
 }

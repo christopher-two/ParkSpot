@@ -10,7 +10,9 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -18,10 +20,33 @@ import androidx.core.content.ContextCompat
 class ParkingForegroundService : Service() {
 
     private val notificationManager by lazy { NotificationManagerCompat.from(this) }
+    private val handler = Handler(Looper.getMainLooper())
 
     private var endTimeMillis: Long = 0L
     private var ticketId: Long = -1L
     private var remainingLabel: String = ""
+    private var initialDurationMillis: Long = 0L
+    private var milestone50Sent: Boolean = false
+    private var milestone10Sent: Boolean = false
+    private var completionSent: Boolean = false
+
+    private val tickerRunnable = object : Runnable {
+        override fun run() {
+            val remainingMillis = (endTimeMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+            remainingLabel = formatDurationLabel(remainingMillis)
+
+            maybeSendMilestones(remainingMillis)
+            notifyCompat()
+
+            if (remainingMillis <= 0L) {
+                stopTicker()
+                stopForegroundCompat()
+                stopSelf()
+                return
+            }
+            handler.postDelayed(this, 1_000L)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -31,13 +56,28 @@ class ParkingForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
-                endTimeMillis = intent.getLongExtra(EXTRA_END_TIME_MILLIS, 0L)
-                ticketId = intent.getLongExtra(EXTRA_TICKET_ID, -1L)
-                if (endTimeMillis <= 0L || ticketId <= 0L) {
+                val newEndTime = intent.getLongExtra(EXTRA_END_TIME_MILLIS, 0L)
+                val newTicketId = intent.getLongExtra(EXTRA_TICKET_ID, -1L)
+                if (newEndTime <= 0L || newTicketId <= 0L) {
                     stopSelf()
                     return startNotStickyCompat()
                 }
-                startForegroundCompat(buildNotification())
+
+                val isNewTimer = (newTicketId != ticketId) || (newEndTime != endTimeMillis)
+                ticketId = newTicketId
+                endTimeMillis = newEndTime
+
+                val remainingMillis = (endTimeMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+                if (isNewTimer) {
+                    initialDurationMillis = remainingMillis.coerceAtLeast(1_000L)
+                    milestone50Sent = false
+                    milestone10Sent = false
+                    completionSent = false
+                }
+
+                remainingLabel = formatDurationLabel(remainingMillis)
+                startForegroundCompat(buildOngoingNotification())
+                startTicker()
             }
 
             ACTION_UPDATE -> {
@@ -48,6 +88,7 @@ class ParkingForegroundService : Service() {
             }
 
             ACTION_CANCEL -> {
+                stopTicker()
                 stopForegroundCompat()
                 stopSelf()
             }
@@ -57,15 +98,45 @@ class ParkingForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun buildNotification(): Notification {
-        val launchIntent = buildLaunchIntent()
+    private fun startTicker() {
+        handler.removeCallbacks(tickerRunnable)
+        handler.post(tickerRunnable)
+    }
 
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            ticketId.toInt(),
-            launchIntent,
-            pendingIntentFlagsCompat(),
-        )
+    private fun stopTicker() {
+        handler.removeCallbacks(tickerRunnable)
+    }
+
+    private fun maybeSendMilestones(remainingMillis: Long) {
+        if (initialDurationMillis <= 0L) return
+
+        if (!milestone50Sent && remainingMillis <= (initialDurationMillis / 2L)) {
+            milestone50Sent = true
+            notifyMilestone(50)
+        }
+
+        val threshold10 = (initialDurationMillis / 10L).coerceAtLeast(1L)
+        if (!milestone10Sent && remainingMillis <= threshold10) {
+            milestone10Sent = true
+            notifyMilestone(10)
+        }
+
+        if (!completionSent && remainingMillis <= 0L) {
+            completionSent = true
+            notifyCompletion()
+        }
+    }
+
+    private fun formatDurationLabel(remainingMillis: Long): String {
+        val totalSeconds = (remainingMillis / 1_000L).coerceAtLeast(0L)
+        val hours = (totalSeconds / 3_600L).toString().padStart(2, '0')
+        val minutes = ((totalSeconds % 3_600L) / 60L).toString().padStart(2, '0')
+        val seconds = (totalSeconds % 60L).toString().padStart(2, '0')
+        return "$hours:$minutes:$seconds"
+    }
+
+    private fun buildOngoingNotification(): Notification {
+        val pendingIntent = buildContentPendingIntent()
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
@@ -86,6 +157,60 @@ class ParkingForegroundService : Service() {
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
+    }
+
+    private fun buildMilestoneNotification(percentRemaining: Int): Notification {
+        val pendingIntent = buildContentPendingIntent()
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Recordatorio de ticket")
+            .setContentText("Te queda el $percentRemaining% del tiempo ($remainingLabel)")
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+    }
+
+    private fun buildCompletionNotification(): Notification {
+        val pendingIntent = buildContentPendingIntent()
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("Ticket finalizado")
+            .setContentText("Tu tiempo de parking ha terminado")
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+    }
+
+    private fun buildContentPendingIntent(): PendingIntent {
+        val launchIntent = buildLaunchIntent()
+        return PendingIntent.getActivity(
+            this,
+            ticketId.toInt(),
+            launchIntent,
+            pendingIntentFlagsCompat(),
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun notifyMilestone(percentRemaining: Int) {
+        if (!canPostNotifications()) return
+        notificationManager.notify(milestoneNotificationId(percentRemaining), buildMilestoneNotification(percentRemaining))
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun notifyCompletion() {
+        if (!canPostNotifications()) return
+        notificationManager.notify(completionNotificationId(), buildCompletionNotification())
+    }
+
+    private fun milestoneNotificationId(percentRemaining: Int): Int {
+        return (ticketId.toInt().coerceAtLeast(1) * 100) + percentRemaining
+    }
+
+    private fun completionNotificationId(): Int {
+        return (ticketId.toInt().coerceAtLeast(1) * 100) + 1
     }
 
     private fun createNotificationChannel() {
@@ -143,7 +268,7 @@ class ParkingForegroundService : Service() {
     @SuppressLint("MissingPermission")
     private fun notifyCompat() {
         if (!canPostNotifications()) return
-        notificationManager.notify(NOTIFICATION_ID, buildNotification())
+        notificationManager.notify(NOTIFICATION_ID, buildOngoingNotification())
     }
 
     private fun startForegroundCompat(notification: Notification) {
